@@ -1,0 +1,22 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">All Messages</h1>
+</div>
+<div class="container">
+    @foreach (var m in Model.Messages)
+    {
+        <div class="row">
+            <div class="col-4">
+                <a href="/message/@m.Id">@m.Subject</a> 
+            </div>
+            <div clas="col-3">
+                @m.CreatedOn
+            </div>
+        </div>
+    }
+</div>
