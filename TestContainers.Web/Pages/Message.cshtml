@@ -4,7 +4,7 @@
 }
 
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Message";
 }
 
 <div class="text-center">
@@ -13,12 +13,12 @@
 <div class="container">
     <div class="row">
         <div class="col">
-            <h2>@Model.Message.Subject</h2>
+            <h2 id="message-subject">@Model.Message.Subject</h2>
         </div>
     </div>
     <div class="row">
         <div class="col">
-            @Model.Message.Content
+            <p id="message-content">@Model.Message.Content</p>
         </div>
     </div>
 </div>

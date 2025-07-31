@@ -14,7 +14,7 @@
     {
         <div class="row">
             <div class="col-3">
-                <a href="/message/@m.Id">@m.Subject</a>
+                <a href="/message/@m.Id" class="message-subject">@m.Subject</a>
             </div>
             <div class="col-3">
                 @m.CreatedOn
@@ -25,6 +25,7 @@
         </div>
     }
     <a href="addmessage" class="btn btn-primary mt-3">Add Message</a>
+    @Html.AntiForgeryToken()
 </div>
 
 @section Scripts
@@ -36,20 +37,25 @@
                 let id = $(this).data('id');
 
 
-                    fetch('/message/' + id, {
-                        method: 'DELETE'
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            location.reload();
-                        } else {
-                            alert('Failed to delete the message.');
-                        }
-                    })
-                    .catch(() => {
+                let formData = new FormData();
+                formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+
+                fetch(`/message/${id}?handler=Delete`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    } else if (response.ok) {
+                        location.reload();
+                    } else {
                         alert('Failed to delete the message.');
-                    });
-                });
+                    }
+                })
+                .catch(() => {
+                    alert('Failed to delete the message.');
+                });                });
         });
     </script>
 }

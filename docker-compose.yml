@@ -36,7 +36,6 @@ services:
       - testcontainers.api
     networks:
       - app-network
-    command: ["sh", "-c", "/app/wait-for-it.sh testcontainers.api:8080 -- dotnet TestContainers.Web.dll"]
 
 networks:
   app-network:

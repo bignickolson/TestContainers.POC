@@ -26,18 +26,20 @@ namespace TestContainers.Tests
             var network = new NetworkBuilder().WithName(Guid.NewGuid().ToString("D")).Build();
             await network.CreateAsync();
 
+            var sqlName = $"sql{Guid.NewGuid()}";
+
             var sql = new MsSqlBuilder()
                 .WithNetwork(network)
-                .WithName("IntegrationTestSql")
+                .WithName(sqlName)
                 .Build();
 
 
             await sql.StartAsync();
 
-            var connStr = "Server=IntegrationTestSql,1433;Database=master;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True";
+            var connStr = $"Server={sqlName},1433;Database=master;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True";
 
             _apiContainer = new ContainerBuilder()
-                .WithImage("testcontainersapi:dev")
+                .WithImage("testcontainersapi")
                 .WithImagePullPolicy(PullPolicy.Never)
                 .WithName("api")
                 .WithNetwork(network)
@@ -46,7 +48,6 @@ namespace TestContainers.Tests
                 .WithEnvironment("ConnectionStrings__Default", connStr)
                 .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
                 .WithEnvironment("ASPNETCORE_HTTP_PORT", "8080")
-                .WithName("IntegrationTestApi")
                 .WithWaitStrategy(Wait
                     .ForUnixContainer()
                     .UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/health"), strat => strat.WithTimeout(TimeSpan.FromSeconds(30))))
@@ -56,20 +57,22 @@ namespace TestContainers.Tests
 
             _webContainer = new ContainerBuilder()
                 .WithImagePullPolicy(PullPolicy.Never)
-                .WithImage("testcontainersweb:dev")
+                .WithImage("testcontainersweb")
                 .WithNetwork(network)
                 .DependsOn(_apiContainer)
                 .WithEnvironment("ApiUrl", "http://api:8080")
                 .WithName("IntegrationTestWeb")
-                .WithPortBinding(8081, true)
+                .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+                .WithEnvironment("ASPNETCORE_HTTP_PORT", "8080")
+                .WithPortBinding(8080, true)
                 .WithWaitStrategy(Wait
                     .ForUnixContainer()
-                    .UntilHttpRequestIsSucceeded(r => r.ForPort(8081).ForPath("/health"), strat => strat.WithTimeout(TimeSpan.FromSeconds(30))))
+                    .UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/health"), strat => strat.WithTimeout(TimeSpan.FromSeconds(30))))
                 .Build();
 
             await _webContainer.StartAsync();
 
-         
+
         }
 
         [ClassCleanup]
@@ -97,7 +100,7 @@ namespace TestContainers.Tests
                     Width = 1920,
                     Height = 1080
                 },
-                BaseURL = $"https://localhost:{_webContainer.GetMappedPublicPort(8081)}"
+                BaseURL = $"http://localhost:{_webContainer.GetMappedPublicPort(8080)}"
             };
         }
 
@@ -105,7 +108,68 @@ namespace TestContainers.Tests
         public async Task LoadHomepage()
         {
             var result = await Page.GotoAsync("/");
+            Assert.IsTrue(result.Ok);
+
+            var messageCount = await Page.Locator(".message-subject").CountAsync();
+            Assert.AreEqual(2, messageCount, "There should be 2 messages displayed on the homepage");
         }
 
+        [TestMethod]
+        public async Task LoadMessageFromHomePage()
+        {
+            var result = await Page.GotoAsync("/");
+            Assert.IsTrue(result.Ok);
+
+            // click the second link, should be the reminder
+            await Page.Locator(".message-subject").Last.ClickAsync();
+
+            await Page.WaitForURLAsync("/message/2");
+
+            var subject = await Page.Locator("#message-subject").TextContentAsync();
+
+            Assert.AreEqual("Reminder", subject);
+        }
+
+        [TestMethod]
+        public async Task MessageAdd()
+        {
+            var result = await Page.GotoAsync("/addmessage");
+            Assert.IsTrue(result.Ok);
+
+
+            // Fill out the form fields
+            await Page.FillAsync("#Message_Subject", "Test Subject");
+            await Page.FillAsync("#Message_Content", "This is a test message.");
+
+            // Submit the form (assuming a button[type=submit] exists)
+            await Page.ClickAsync("button[type=submit]");
+
+            // Optionally, wait for navigation or confirmation
+            await Page.WaitForURLAsync("/");
+            var messageCount = await Page.Locator(".message-subject").CountAsync();
+            Assert.AreEqual(3, messageCount, "There should be 3 messages displayed after adding a new message");
+
+            // Verify the new message is displayed
+            var newMessage = await Page.Locator(".message-subject").Last.TextContentAsync();
+            Assert.AreEqual("Test Subject", newMessage, "The new message should be displayed on the homepage");
+        }
+
+        [TestMethod]
+        public async Task MessageDelete()
+        {
+            var result = await Page.GotoAsync("/");
+            Assert.IsTrue(result.Ok);
+
+            var messageCount = await Page.Locator(".message-subject").CountAsync();
+            Assert.AreEqual(3, messageCount, "There should be 3 messages displayed ");
+
+            await Page.Locator(".deleteLink").Last.ClickAsync();
+            await Page.WaitForLoadStateAsync(LoadState.Load);
+            await Page.WaitForFunctionAsync("document.querySelectorAll('.message-subject').length === 2");
+
+            messageCount = await Page.Locator(".message-subject").CountAsync();
+            Assert.AreEqual(2, messageCount, "There should be 2 messages displayed after deleting a message");
+
+        }
     }
 }

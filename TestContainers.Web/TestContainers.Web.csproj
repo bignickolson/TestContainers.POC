@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <OpenApiReference Include="OpenAPIs\swagger1.json" ClassName="MessageClient">
-      <SourceUri>https://localhost:7069/swagger/v1/swagger.json</SourceUri>
+      <SourceUri>http://localhost:5085/swagger/v1/swagger.json</SourceUri>
     </OpenApiReference>
   </ItemGroup>
 

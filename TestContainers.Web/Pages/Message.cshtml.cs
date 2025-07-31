@@ -20,10 +20,10 @@ namespace TestContainers.Web.Pages
         }
 
         
-        public async Task OnDelete(int id)
+        public async Task<ActionResult> OnPostDeleteAsync(int id)
         {
             await client.MessageDELETEAsync(id);
-            RedirectToPage("Index");
+            return RedirectToPage("Index");
         }
     }
 }

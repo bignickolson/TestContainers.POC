@@ -16,7 +16,7 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["TestContainers.Web/TestContainers.Web.csproj", "TestContainers.Web/"]
 RUN dotnet restore "./TestContainers.Web/TestContainers.Web.csproj"
-COPY . .
+COPY TestContainers.Web/. ./TestContainers.Web/
 WORKDIR "/src/TestContainers.Web"
 RUN dotnet build "./TestContainers.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
@@ -29,9 +29,6 @@ RUN dotnet publish "./TestContainers.Web.csproj" -c $BUILD_CONFIGURATION -o /app
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-
-COPY wait-for-it.sh /app/wait-for-it.sh
-RUN chmod +x /app/wait-for-it.sh
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl --fail http://localhost:8080/health || exit 1

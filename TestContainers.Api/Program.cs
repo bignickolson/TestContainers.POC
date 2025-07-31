@@ -66,7 +66,7 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 
 app.MapGet("/messages", async (DataContext ctx) =>
 {
-    return Results.Ok(await ctx.Messages.Select(i => new MessageSummary{ Id = i.Id, Subject = i.Subject, CreatedOn = i.CreatedOn }).ToListAsync());
+    return Results.Ok(await ctx.Messages.Select(i => new MessageSummary { Id = i.Id, Subject = i.Subject, CreatedOn = i.CreatedOn }).ToListAsync());
 })
     .Produces<IEnumerable<MessageSummary>>(StatusCodes.Status200OK);
 ;
@@ -88,7 +88,7 @@ app.MapPost("/messages", async (CreateMessageRequest req, DataContext ctx) =>
 .Produces<Message>(StatusCodes.Status201Created);
 
 
-app.MapDelete("/message", async (int id, DataContext ctx) => 
+app.MapDelete("/message", async (int id, DataContext ctx) =>
 {
     var m = await ctx.Messages.FirstOrDefaultAsync(i => i.Id == id);
     if (m == null)
@@ -96,7 +96,7 @@ app.MapDelete("/message", async (int id, DataContext ctx) =>
     ctx.Messages.Remove(m);
     await ctx.SaveChangesAsync();
     return Results.NoContent();
-});
+}).Produces(StatusCodes.Status204NoContent).Produces(StatusCodes.Status404NotFound);
 
 
 app.Run();

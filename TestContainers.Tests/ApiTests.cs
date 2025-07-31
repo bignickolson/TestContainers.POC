@@ -20,24 +20,26 @@ namespace TestContainers.Tests
         private static MessageClient _messageClient;
 
         [ClassInitialize]
-        public static void ClassInit(TestContext ctx)
+        public static async Task ClassInit(TestContext ctx)
         {
             var network = new NetworkBuilder().WithName(Guid.NewGuid().ToString("D")).Build();
-            network.CreateAsync().Wait();
 
+            await network.CreateAsync();
+
+            var sqlName = $"sql{Guid.NewGuid()}";
             var sql = new MsSqlBuilder()
                 .WithNetwork(network)
-                .WithName("IntegrationTestSql")
+                .WithName(sqlName)
                 .Build();
 
 
-            sql.StartAsync().Wait();
+            await sql.StartAsync();
 
-            var connStr = "Server=IntegrationTestSql,1433;Database=master;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True";
+            var connStr = $"Server={sqlName},1433;Database=master;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True";
 
             _apiContainer = new ContainerBuilder()
                 .WithImagePullPolicy(PullPolicy.Never)
-                .WithImage("testcontainersapi:dev")
+                .WithImage("testcontainersapi")
                 .WithNetwork(network)
                 .DependsOn(sql)
                 .WithEnvironment("ConnectionStrings__Default", connStr)
@@ -62,10 +64,11 @@ namespace TestContainers.Tests
 
                 _messageClient = new MessageClient($"http://localhost:{_apiContainer.GetMappedPublicPort(8080)}", _httpclient);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                var logs = await _apiContainer.GetLogsAsync();
 
-                throw;
+                throw ex;
             }
 
         }
@@ -73,8 +76,11 @@ namespace TestContainers.Tests
         [ClassCleanup]
         public static async Task ClassCleanup()
         {
-            await _apiContainer.StopAsync();
-            await _apiContainer.DisposeAsync();
+            if (_apiContainer != null)
+            {
+                await _apiContainer.StopAsync();
+                await _apiContainer.DisposeAsync();
+            }
         }
 
         [TestMethod]

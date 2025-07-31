@@ -18,13 +18,14 @@ namespace TestContainers.Web.Pages
         {
         }
 
-        public async Task OnPost()
+        public async Task<ActionResult> OnPost()
         {
             if (ModelState.IsValid)
             {
-                await client.MessagesAsync(Message) ;
-                RedirectToPage("Index");
+                await client.MessagesAsync(Message);
+                return Redirect("/");
             }
+            return Page();
         }
     }
 }

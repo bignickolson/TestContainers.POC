@@ -53,7 +53,6 @@ app.MapHealthChecks("/health", new HealthCheckOptions
     }
 });
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();

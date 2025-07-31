@@ -14,7 +14,7 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["TestContainers.Api/TestContainers.Api.csproj", "TestContainers.Api/"]
 RUN dotnet restore "./TestContainers.Api/TestContainers.Api.csproj"
-COPY . .
+COPY TestContainers.Api/. ./TestContainers.Api/
 WORKDIR "/src/TestContainers.Api"
 RUN dotnet build "./TestContainers.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
