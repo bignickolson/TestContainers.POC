@@ -82,6 +82,27 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "TestContainers.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     }
   },

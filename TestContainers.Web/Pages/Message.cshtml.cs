@@ -16,7 +16,14 @@ namespace TestContainers.Web.Pages
 
         public async Task OnGet(int id)
         {
-            Message = await client.MessageAsync(id);
+            Message = await client.MessageGETAsync(id);
+        }
+
+        
+        public async Task OnDelete(int id)
+        {
+            await client.MessageDELETEAsync(id);
+            RedirectToPage("Index");
         }
     }
 }

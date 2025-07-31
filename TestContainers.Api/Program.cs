@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using TestContainers.Api.Data;
 using TestContainers.Api.Request;
 
@@ -8,7 +10,13 @@ var builder = WebApplication.CreateBuilder(args);
 var connString = builder.Configuration.GetConnectionString("Default");
 builder.Services.AddDbContext<DataContext>(opt =>
     opt.UseSqlServer(connString));
+
 builder.Services.AddControllers();
+
+builder.Services.AddHealthChecks()
+    .AddResourceUtilizationHealthCheck()
+    .AddDbContextCheck<DataContext>();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -29,11 +37,32 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(entry => new
+            {
+                name = entry.Key,
+                status = entry.Value.Status.ToString(),
+                description = entry.Value.Description,
+                exception = entry.Value.Exception?.Message,
+                duration = entry.Value.Duration.ToString()
+            })
+        };
+
+        await context.Response.WriteAsync(JsonSerializer.Serialize(result));
+    }
+});
 
 app.MapGet("/messages", async (DataContext ctx) =>
 {
@@ -55,8 +84,19 @@ app.MapPost("/messages", async (CreateMessageRequest req, DataContext ctx) =>
     ctx.Messages.Add(m);
     await ctx.SaveChangesAsync();
     return Results.Created($"/message/{m.Id}", m);
-})
-.Accepts<CreateMessageRequest>("application/json")
+}).Accepts<CreateMessageRequest>("application/json")
 .Produces<Message>(StatusCodes.Status201Created);
+
+
+app.MapDelete("/message", async (int id, DataContext ctx) => 
+{
+    var m = await ctx.Messages.FirstOrDefaultAsync(i => i.Id == id);
+    if (m == null)
+        return Results.NotFound();
+    ctx.Messages.Remove(m);
+    await ctx.SaveChangesAsync();
+    return Results.NoContent();
+});
+
 
 app.Run();

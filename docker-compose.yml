@@ -1,9 +1,6 @@
-version: '3.8'
-
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sqlserver
     environment:
       SA_PASSWORD: "Your_password123"
       ACCEPT_EULA: "Y"
@@ -12,31 +9,35 @@ services:
     networks:
       - app-network
 
-  api:
+  testcontainers.api:
+    image: ${DOCKER_REGISTRY-}testcontainersapi
     build:
-      context: ./TestContainers.Api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: TestContainers.Api/Dockerfile
     environment:
-      - ConnectionStrings__Default=Server=sqlserver;Database=TestContainersDb;User=sa;Password=Your_password123;
+      - ConnectionStrings__Default=Server=sqlserver;Database=TestDb;User=sa;Password=Your_password123;Trusted_Connection=False;Encrypt=false;
     ports:
-      - "5000:8080"
+      - "5000:8081"
     depends_on:
       - sqlserver
     networks:
       - app-network
 
-  web:
+  testcontainers.web:
+    image: ${DOCKER_REGISTRY-}testcontainersweb
     build:
-      context: ./TestContainers.Web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: TestContainers.Web/Dockerfile
     environment:
-      - ApiBaseUrl=http://api:8080
+      - ApiUrl=http://testcontainers.api:8080
     ports:
-      - "5001:8080"
+      - "5001:8081"
     depends_on:
-      - api
+      - testcontainers.api
     networks:
       - app-network
+    command: ["sh", "-c", "/app/wait-for-it.sh testcontainers.api:8080 -- dotnet TestContainers.Web.dll"]
 
 networks:
   app-network:
+

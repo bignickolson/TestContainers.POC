@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Home page";
 }
+<style>
+</style>
 
 <div class="text-center">
     <h1 class="display-4">All Messages</h1>
@@ -11,12 +13,43 @@
     @foreach (var m in Model.Messages)
     {
         <div class="row">
-            <div class="col-4">
-                <a href="/message/@m.Id">@m.Subject</a> 
+            <div class="col-3">
+                <a href="/message/@m.Id">@m.Subject</a>
             </div>
-            <div clas="col-3">
+            <div class="col-3">
                 @m.CreatedOn
+            </div>
+            <div class="col-2">
+                <a data-id="@m.Id" class="deleteLink text-reset opacity-50" href="#"><i class="fas fa-trash"></i></a>
             </div>
         </div>
     }
+    <a href="addmessage" class="btn btn-primary mt-3">Add Message</a>
 </div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function(){
+            $('.deleteLink').click(function (e) {
+                e.preventDefault();
+                let id = $(this).data('id');
+
+
+                    fetch('/message/' + id, {
+                        method: 'DELETE'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            alert('Failed to delete the message.');
+                        }
+                    })
+                    .catch(() => {
+                        alert('Failed to delete the message.');
+                    });
+                });
+        });
+    </script>
+}
